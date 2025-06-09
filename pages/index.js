@@ -1,20 +1,34 @@
-// pages/index.js
-import { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/router';
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { app } from "@/googleAuth/firebase";
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import useAuth from "@/hooks/useAuth";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const router = useRouter();
+  const auth = getAuth(app);
+  const { user, isLoading } = useAuth();
 
   const handleLogin = (e) => {
     e.preventDefault();
-    
-    console.log('Logging in with:', { email, password });
-    
-    router.push('/dashboard');
+    signInWithEmailAndPassword(auth, email, password)
+      .then((res) => {
+        const user = res.user;
+        router.push("/dashboard");
+      })
+      .catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        console.error("Error signing in:", errorCode, errorMessage);
+      });
   };
+  if (user && !isLoading) {
+    // If user is already logged in, redirect to dashboard
+    router.push("/dashboard");
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -22,9 +36,7 @@ export default function LoginPage() {
         <h1 className="text-3xl font-bold text-center text-gray-900">
           Welcome Back!
         </h1>
-        <p className="text-center text-gray-600">
-          Sign in to your account
-        </p>
+        <p className="text-center text-gray-600">Sign in to your account</p>
         <form className="space-y-6" onSubmit={handleLogin}>
           <div>
             <label
@@ -73,11 +85,13 @@ export default function LoginPage() {
             </button>
           </div>
         </form>
-         <p className="text-sm text-center text-gray-600">
-          Dont have an account?{' '}
-          <Link href="/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
-              Sign up
-            
+        <p className="text-sm text-center text-gray-600">
+          Dont have an account?{" "}
+          <Link
+            href="/signup"
+            className="font-medium text-indigo-600 hover:text-indigo-500"
+          >
+            Sign up
           </Link>
         </p>
       </div>

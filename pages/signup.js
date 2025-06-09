@@ -1,37 +1,36 @@
-// pages/signup.js
-import { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/router';
-import { app } from '@/googleAuth/firebase';
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/router";
+
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { auth } from "@/googleAuth/firebase";
 
 export default function SignupPage() {
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState("");
+  const [PhoneNumber, setPhoneNumber] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const router = useRouter();
-  const auth = getAuth(app);
 
   const handleSignup = (e) => {
     e.preventDefault();
     createUserWithEmailAndPassword(auth, email, password)
-    .then((res) => {
-        // Signed in 
+      .then((res) => {
         const user = res.user;
-        console.log('User signed up:', user);
-        // You can also save the full name to your database here
-        // For now, just redirect to the home page
-        router.push('/');
-        })
-    .catch((error) => { 
+        updateProfile(auth.currentUser, {
+          displayName: fullName,
+          phoneNumber: PhoneNumber, 
+        });
+        console.log("User signed up:", user);
+
+        router.push("/");
+      })
+      .catch((error) => {
         const errorCode = error.code;
         const errorMessage = error.message;
-        console.error('Error signing up:', errorCode, errorMessage);
+        console.error("Error signing up:", errorCode, errorMessage);
         // Handle errors here, e.g., show a notification to the user
-    })
-    
-    
-    router.push('/');
+      });
   };
 
   return (
@@ -41,7 +40,7 @@ export default function SignupPage() {
           Create an Account
         </h1>
         <form className="space-y-6" onSubmit={handleSignup}>
-           <div>
+          <div>
             <label
               htmlFor="fullName"
               className="text-sm font-semibold text-gray-700"
@@ -57,6 +56,24 @@ export default function SignupPage() {
               onChange={(e) => setFullName(e.target.value)}
               className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="John Doe"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="PhoneNumber"
+              className="text-sm font-semibold text-gray-700"
+            >
+                Phone Number
+            </label>
+            <input
+              id="PhoneNumber"
+              name="PhoneNumber"
+              type="number"
+              required
+              value={PhoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="123-456-7890"
             />
           </div>
           <div>
@@ -106,10 +123,12 @@ export default function SignupPage() {
           </div>
         </form>
         <p className="text-sm text-center text-gray-600">
-          Already have an account?{' '}
-          <Link href="/" className="font-medium text-indigo-600 hover:text-indigo-500">
-              Sign in
-           
+          Already have an account?{" "}
+          <Link
+            href="/"
+            className="font-medium text-indigo-600 hover:text-indigo-500"
+          >
+            Sign in
           </Link>
         </p>
       </div>
