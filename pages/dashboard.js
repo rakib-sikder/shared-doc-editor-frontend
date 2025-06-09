@@ -54,7 +54,7 @@ export default function Dashboard() {
           <div className="flex items-center">
             <span className="mr-4 text-gray-600">{currentUser}</span>
             <img
-              src="https://i.pravatar.cc/40"
+              src={user?.photoURL || "https://i.pravatar.cc/40"}
               alt="User Avatar"
               className="w-10 h-10 rounded-full"
             />
