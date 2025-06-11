@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-
+import axios from "axios";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "@/googleAuth/firebase";
 
@@ -12,25 +12,34 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const router = useRouter();
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
-    createUserWithEmailAndPassword(auth, email, password)
-      .then((res) => {
+    try{
+      createUserWithEmailAndPassword(auth, email, password)
+      .then(async (res) => {
         const user = res.user;
         updateProfile(auth.currentUser, {
           displayName: fullName,
-          phoneNumber: PhoneNumber, 
-        });
-        console.log("User signed up:", user);
+          phoneNumber: PhoneNumber 
+        })
+        const response = await axios.post("http://localhost:5000/api/signup", {
+          fullName: fullName,
+          email: email,
+          password: password
 
+        })
+        const { token } = response.data;
+        localStorage.setItem("token", token);
         router.push("/");
       })
       .catch((error) => {
         const errorCode = error.code;
         const errorMessage = error.message;
         console.error("Error signing up:", errorCode, errorMessage);
-        // Handle errors here, e.g., show a notification to the user
       });
+    }catch{
+
+    }
   };
 
   return (
