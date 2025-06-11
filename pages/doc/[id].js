@@ -1,17 +1,15 @@
-// pages/doc/[id].js
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import 'react-quill/dist/quill.snow.css'; // Import Quill styles
+import 'react-quill/dist/quill.snow.css'; 
 import Link from 'next/link';
 
-// Dynamically import Quill to avoid SSR issues
 const QuillNoSSR = dynamic(() => import('react-quill'), {
   ssr: false,
   loading: () => <p>Loading editor...</p>,
 });
 
-// Dummy user data
+
 const onlineUsers = [
   { id: '1', name: 'Alex', avatar: 'https://i.pravatar.cc/40?u=1' },
   { id: '2', name: 'Maria', avatar: 'https://i.pravatar.cc/40?u=2' },
@@ -24,22 +22,47 @@ export default function DocumentEditorPage() {
   const [content, setContent] = useState('');
   const [isShareModalOpen, setShareModalOpen] = useState(false);
 
-  // Effect to fetch initial document data
+
+
+
   useEffect(() => {
-    if (docId) {
-      // Dummy data fetch
-      console.log(`Fetching data for doc ${docId}`);
-      setDocTitle(`My Awesome Document ${docId}`);
-      setContent('<p>This is the initial content from the "database".</p>');
-    }
+    
+      const fetchDocument = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('No authentication token found. Please log in.');
+          router.push('/');
+          return;
+        }
+
+        try {
+          const response = await fetch(`http://localhost:5000/api/documents/${docId}`, {
+            headers: { Authorization: `token ${token}` },
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch document');
+          }
+          
+          const data = await response.json();
+          console.log('Fetched document:', data);
+          setDocTitle(data.title);
+          setContent(data.content);
+        } catch (error) {
+          console.error('Error fetching document:', error);
+          setDocTitle('Error loading document');
+        }
+      }
+      
+      
+      fetchDocument();
   }, [docId]);
 
-  // Effect for auto-saving (and later, for Socket.IO)
   useEffect(() => {
       const handler = setTimeout(() => {
           console.log('Auto-saving content:', content);
-          // In a real app, you would send this to the backend
-      }, 2000); // Save 2 seconds after user stops typing
+          
+      }, 2000);
 
       return () => {
           clearTimeout(handler);
