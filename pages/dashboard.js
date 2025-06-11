@@ -91,9 +91,25 @@ export default function Dashboard() {
       console.error("Error creating new document:", error);
     }
   };
-  const deleteDocument = (docId) => {
-    setMyDocuments(myDocuments.filter((doc) => doc.id !== docId));
-    console.log(`Deleting document ${docId}`);
+  const deleteDocument = (doc_Id) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.error("No authentication token found. Please log in.");
+      router.push("/");
+      return;
+    }
+    axios
+      .delete(`http://localhost:5000/api/documents/${doc_Id}`, {
+        headers: { Authorization: `token ${token}` },
+      })
+      .then(() => {
+        setMyDocuments((prevDocs) =>
+          prevDocs.filter((doc) => doc._id !== doc_Id)
+        );
+      })
+      .catch((error) => {
+        console.error("Error deleting document:", error);
+      });
   };
   return (
     <div className="min-h-screen bg-gray-50">
@@ -149,7 +165,7 @@ export default function Dashboard() {
                 </p>
                 <div className="mt-4 text-right">
                   <button
-                    onClick={() => deleteDocument(doc.id)}
+                    onClick={() => deleteDocument(doc._id)}
                     className="text-sm font-medium text-red-500 hover:text-red-700"
                   >
                     Delete
