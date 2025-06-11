@@ -1,28 +1,43 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import useAuth from "@/hooks/useAuth";
 import { signOut } from "firebase/auth";
 import { auth } from "@/googleAuth/firebase";
-
-// Dummy data - replace with API call
-const initialMyDocs = [
-  { id: "1", title: "Project Proposal", lastOpened: "2 hours ago" },
-  { id: "2", title: "Meeting Notes", lastOpened: "Yesterday" },
-  { id: "3", title: "Draft for Blog Post", lastOpened: "3 days ago" },
-];
+import axios from "axios";
 
 const initialSharedDocs = [
   { id: "4", title: "Team Vacation Plan", owner: "Alice" },
 ];
 
 export default function Dashboard() {
-  const [myDocuments, setMyDocuments] = useState(initialMyDocs);
+  const [myDocuments, setMyDocuments] = useState([]);
   const [sharedDocuments, setSharedDocuments] = useState(initialSharedDocs);
   const router = useRouter();
   const { user, isLoading } = useAuth();
   console.log("User:", user, "Loading:", isLoading);
   const currentUser = user && user.email;
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");  
+    if (!token) {
+      console.error("No authentication token found. Please log in."); 
+      router.push("/");
+      return;
+    }
+    const fetchDocuments = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/documents", {
+          headers: { Authorization: `token ${token}` },
+        });
+        setMyDocuments(response.data);
+      } catch (error) {
+        console.error("Error fetching documents:", error);
+      }
+    };
+    fetchDocuments();
+  }, [router]); 
+
 
   const handleLogout = () => {
     signOut(auth)
@@ -34,17 +49,30 @@ export default function Dashboard() {
       });
   };
 
-  const createNewDocument = () => {
-    const newDocId = Math.random().toString(36).substring(7);
-    console.log("Creating new document...");
-    router.push(`/doc/${newDocId}`);
-  };
+  const createNewDocument = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("No authentication token found. Please log in.");
+        router.push("/");
+        return;
+      }
+      const newDocId = await axios
+        .post("http://localhost:5000/api/documents", {
+          title: "New Document",
+          content: "<p>Start writing your document here...</p>",
+        },{headers: { Authorization: `token ${token}` }})
+        .then((response) => response.data._id);
 
+      router.push(`/doc/${newDocId}`);
+    } catch (error) {
+      console.error("Error creating new document:", error);
+    }
+  };
   const deleteDocument = (docId) => {
     setMyDocuments(myDocuments.filter((doc) => doc.id !== docId));
     console.log(`Deleting document ${docId}`);
   };
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -85,11 +113,11 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
             {myDocuments.map((doc) => (
               <div
-                key={doc.id}
+                key={doc._id}
                 className="p-4 bg-white rounded-lg shadow hover:shadow-lg transition-shadow"
               >
                 <Link
-                  href={`/doc/${doc.id}`}
+                  href={`/doc/${doc._id}`}
                   className="text-lg font-bold text-indigo-700"
                 >
                   {doc.title}
