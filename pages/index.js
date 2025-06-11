@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { app } from "@/googleAuth/firebase";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import useAuth from "@/hooks/useAuth";
+import axios from "axios";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -12,21 +13,26 @@ export default function LoginPage() {
   const auth = getAuth(app);
   const { user, isLoading } = useAuth();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    signInWithEmailAndPassword(auth, email, password)
-      .then((res) => {
-        const user = res.user;
-        router.push("/dashboard");
-      })
-      .catch((error) => {
-        const errorCode = error.code;
-        const errorMessage = error.message;
-        console.error("Error signing in:", errorCode, errorMessage);
+    try {
+       signInWithEmailAndPassword(auth, email, password);
+
+      const response = await axios.post("http://localhost:5000/api/login", {
+        email: email,
+        password: password,
       });
+      const { token } = response.data;
+      localStorage.setItem("token", token);
+
+      router.push("/dashboard");
+    } catch (error) {
+      const errorCode = error.code;
+      const errorMessage = error.message;
+      console.error("Error during login:", errorCode, errorMessage);
+    }
   };
   if (user && !isLoading) {
-    // If user is already logged in, redirect to dashboard
     router.push("/dashboard");
   }
 
