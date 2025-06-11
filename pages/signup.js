@@ -29,6 +29,7 @@ export default function SignupPage() {
         })
         const  token  = response.data;
         localStorage.setItem("token", token);
+        localStorage.setItem("userId", response.data.userId);
         
       })
       .catch((error) => {

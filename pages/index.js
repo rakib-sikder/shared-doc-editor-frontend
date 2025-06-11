@@ -24,6 +24,7 @@ export default function LoginPage() {
       });
       const { token } = response.data;
       localStorage.setItem("token", token);
+      localStorage.setItem("userId", response.data.userId);
 
       router.push("/dashboard");
     } catch (error) {

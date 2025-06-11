@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import useAuth from "@/hooks/useAuth";
@@ -12,7 +12,8 @@ const initialSharedDocs = [
 
 export default function Dashboard() {
   const [myDocuments, setMyDocuments] = useState([]);
-  const [sharedDocuments, setSharedDocuments] = useState(initialSharedDocs);
+  const [sharedDocuments, setSharedDocuments] = useState([]);
+  console.log("Shared Documents:", sharedDocuments);
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const currentUser = user && user.email;
@@ -37,6 +38,27 @@ export default function Dashboard() {
     fetchDocuments();
   }, [router]); 
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.error("No authentication token found. Please log in.");
+      router.push("/");
+      return;
+    }
+    const fetchSharedDocuments = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/shared-documents", {
+          headers: { Authorization: `token ${token}` },
+        });
+        setSharedDocuments(response?.data);
+        
+      } catch (error) {
+        console.error("Error fetching shared documents:", error);
+      }
+    };
+    fetchSharedDocuments();
+  },[])
+    
 
   const handleLogout = () => {
     signOut(auth)
@@ -123,7 +145,7 @@ export default function Dashboard() {
                   {doc.title}
                 </Link>
                 <p className="mt-2 text-sm text-gray-500">
-                  Last opened: {doc.lastOpened}
+                  Last opened: {doc.updatedAt}
                 </p>
                 <div className="mt-4 text-right">
                   <button
@@ -144,18 +166,20 @@ export default function Dashboard() {
             Shared With Me
           </h3>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {sharedDocuments.map((doc) => (
+            {sharedDocuments?.map((doc) => (
               <div
-                key={doc.id}
+                key={doc._id}
                 className="p-4 bg-white rounded-lg shadow hover:shadow-lg transition-shadow"
               >
                 <Link
-                  href={`/doc/${doc.id}`}
+                  href={`/doc/${doc._id}`}
                   className="text-lg font-bold text-indigo-700"
                 >
                   {doc.title}
                 </Link>
-                <p className="mt-2 text-sm text-gray-500">Owner: {doc.owner}</p>
+                <p className="mt-2 text-sm text-gray-500">
+                  Owner: {doc.owner?.fullName || "Unknown"}
+                </p>
               </div>
             ))}
           </div>

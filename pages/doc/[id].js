@@ -86,7 +86,7 @@ export default function DocumentEditorPage() {
       socket.off(`document-${docId}`);
       socket.disconnect();
     };
-  }, []);
+  }, [docId, socket]);
 
   useEffect(() => {
     const fetchDocument = async () => {
@@ -120,7 +120,7 @@ export default function DocumentEditorPage() {
     };
 
     fetchDocument();
-  }, [docId]);
+  }, [docId, router]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
