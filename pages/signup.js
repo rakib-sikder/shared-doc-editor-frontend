@@ -16,8 +16,7 @@ export default function SignupPage() {
     e.preventDefault();
     try{
       createUserWithEmailAndPassword(auth, email, password)
-      .then(async (res) => {
-        const user = res.user;
+      .then(async () => {
         updateProfile(auth.currentUser, {
           displayName: fullName,
           phoneNumber: PhoneNumber 
@@ -28,9 +27,9 @@ export default function SignupPage() {
           password: password
 
         })
-        const { token } = response.data;
+        const  token  = response.data;
         localStorage.setItem("token", token);
-        router.push("/");
+        
       })
       .catch((error) => {
         const errorCode = error.code;
@@ -39,6 +38,8 @@ export default function SignupPage() {
       });
     }catch{
 
+    }finally{
+      router.push("/dashboard");
     }
   };
 

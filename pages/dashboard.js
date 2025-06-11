@@ -15,7 +15,6 @@ export default function Dashboard() {
   const [sharedDocuments, setSharedDocuments] = useState(initialSharedDocs);
   const router = useRouter();
   const { user, isLoading } = useAuth();
-  console.log("User:", user, "Loading:", isLoading);
   const currentUser = user && user.email;
 
   useEffect(() => {
@@ -42,6 +41,7 @@ export default function Dashboard() {
   const handleLogout = () => {
     signOut(auth)
       .then(() => {
+        localStorage.removeItem("token");
         router.push("/");
       })
       .catch((error) => {
