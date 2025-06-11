@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css'; 
 import Link from 'next/link';
+import axios from 'axios';
 
 const QuillNoSSR = dynamic(() => import('react-quill'), {
   ssr: false,
@@ -60,14 +61,25 @@ export default function DocumentEditorPage() {
 
   useEffect(() => {
       const handler = setTimeout(() => {
-          console.log('Auto-saving content:', content);
+          const token = localStorage.getItem('token');
+          if (!token) {
+              console.error('No authentication token found. Please log in.');
+              router.push('/');
+              return;
+          }
+          axios.put(`http://localhost:5000/api/documents/${docId}`, {
+              title: docTitle,
+              content: content,
+          }, {
+              headers: { Authorization: `token ${token}` },
+          })
           
       }, 2000);
 
       return () => {
           clearTimeout(handler);
       };
-  }, [content]);
+  }, [content, docId, docTitle, router]);
 
 
   return (
