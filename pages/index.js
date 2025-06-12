@@ -18,7 +18,7 @@ export default function LoginPage() {
     try {
        signInWithEmailAndPassword(auth, email, password);
 
-      const response = await axios.post("http://localhost:5000/api/login", {
+      const response = await axios.post("https://shared-doc-editor-backend.onrender.com/api/login", {
         email: email,
         password: password,
       });

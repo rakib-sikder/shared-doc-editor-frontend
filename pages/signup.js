@@ -21,7 +21,7 @@ export default function SignupPage() {
           displayName: fullName,
           phoneNumber: PhoneNumber 
         })
-        const response = await axios.post("http://localhost:5000/api/signup", {
+        const response = await axios.post("https://shared-doc-editor-backend.onrender.com/api/signup", {
           fullName: fullName,
           email: email,
           password: password

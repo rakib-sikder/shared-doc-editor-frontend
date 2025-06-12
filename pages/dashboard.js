@@ -27,7 +27,7 @@ export default function Dashboard() {
     }
     const fetchDocuments = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/documents", {
+        const response = await axios.get("https://shared-doc-editor-backend.onrender.com/api/documents", {
           headers: { Authorization: `token ${token}` },
         });
         setMyDocuments(response.data);
@@ -47,7 +47,7 @@ export default function Dashboard() {
     }
     const fetchSharedDocuments = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/shared-documents", {
+        const res = await axios.get("https://shared-doc-editor-backend.onrender.com/api/shared-documents", {
           headers: { Authorization: `token ${token}` },
         });
         const allDocuments = res.data.filter(
@@ -55,7 +55,7 @@ export default function Dashboard() {
         );
         console.log("Shared Documents:", allDocuments);
         setSharedDocuments(allDocuments);
-        
+
       } catch (error) {
         console.error("Error fetching shared documents:", error);
       }
@@ -84,7 +84,7 @@ export default function Dashboard() {
         return;
       }
       const newDocId = await axios
-        .post("http://localhost:5000/api/documents", {
+        .post("https://shared-doc-editor-backend.onrender.com/api/documents", {
           title: "New Document",
           content: "<p>Start writing your document here...</p>",
         },{headers: { Authorization: `token ${token}` }})
@@ -103,7 +103,7 @@ export default function Dashboard() {
       return;
     }
     axios
-      .delete(`http://localhost:5000/api/documents/${doc_Id}`, {
+      .delete(`https://shared-doc-editor-backend.onrender.com/api/documents/${doc_Id}`, {
         headers: { Authorization: `token ${token}` },
       })
       .then(() => {
@@ -130,8 +130,8 @@ export default function Dashboard() {
             />
           </div>
         </div>
-        <div>
-          <button onClick={handleLogout}>logout</button>
+        <div className="flex items-center px-4 py-2 space-x-4">
+          <button className="px-6 py-2 font-semibold text-white bg-red-600 rounded-md hover:bg-red-700"  onClick={handleLogout}>logout</button>
         </div>
       </header>
 

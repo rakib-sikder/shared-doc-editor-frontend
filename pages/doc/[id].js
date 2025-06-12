@@ -26,7 +26,7 @@ export default function DocumentEditorPage() {
   useEffect(() => {
     if (docId == null) return;
 
-    const socketInstance = io("http://localhost:5000");
+    const socketInstance = io("https://shared-doc-editor-backend.onrender.com");
     setSocket(socketInstance);
 
     const setupEditorAndListeners = async () => {
@@ -54,7 +54,7 @@ export default function DocumentEditorPage() {
 
       try {
         const res = await axios.get(
-          `http://localhost:5000/api/documents/${docId}`,
+          `https://shared-doc-editor-backend.onrender.com/api/documents/${docId}`,
           {
             headers: { Authorization: `token ${token}` },
           }
@@ -115,7 +115,7 @@ export default function DocumentEditorPage() {
         setDocContent(content);
 
         const res = await axios.put(
-          `http://localhost:5000/api/documents/${docId}`,
+          `https://shared-doc-editor-backend.onrender.com/api/documents/${docId}`,
           { title: docTitle, content: content },
           { headers: { Authorization: `token ${token}` } } 
         );
@@ -138,7 +138,7 @@ export default function DocumentEditorPage() {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.post(
-        `http://localhost:5000/api/documents/${docId}/share`,
+        `https://shared-doc-editor-backend.onrender.com/api/documents/${docId}/share`,
         { email: shareEmail, role: shareRole },
         { headers: { Authorization: `token ${token}` } } // Use the correct header name
       );
