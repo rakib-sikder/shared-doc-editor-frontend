@@ -16,13 +16,13 @@ export default function LoginPage() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-       signInWithEmailAndPassword(auth, email, password);
-
+       signInWithEmailAndPassword(auth, email, password)
       const response = await axios.post("https://shared-doc-editor-backend.onrender.com/api/login", {
         email: email,
         password: password,
       });
       const { token } = response.data;
+      console.log("Login successful, token:", token);
       localStorage.setItem("token", token);
       localStorage.setItem("userId", response.data.userId);
 
