@@ -13,7 +13,6 @@ const initialSharedDocs = [
 export default function Dashboard() {
   const [myDocuments, setMyDocuments] = useState([]);
   const [sharedDocuments, setSharedDocuments] = useState([]);
-  console.log("Shared Documents:", sharedDocuments);
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const currentUser = user && user.email;
@@ -53,7 +52,7 @@ export default function Dashboard() {
         const allDocuments = res.data.filter(
           (doc) => doc.sharedWith
         );
-        console.log("Shared Documents:", allDocuments);
+        
         setSharedDocuments(allDocuments);
 
       } catch (error) {

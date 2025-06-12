@@ -11,6 +11,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   const handleSignup = async (e) => {
     e.preventDefault();
@@ -27,9 +28,11 @@ export default function SignupPage() {
           password: password
 
         })
+        
         const  token  = response.data;
         localStorage.setItem("token", token);
         localStorage.setItem("userId", response.data.userId);
+        router.push("/dashboard");
         
       })
       .catch((error) => {
@@ -39,8 +42,6 @@ export default function SignupPage() {
       });
     }catch{
 
-    }finally{
-      router.push("/dashboard");
     }
   };
 
