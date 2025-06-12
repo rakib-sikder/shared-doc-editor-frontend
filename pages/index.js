@@ -33,9 +33,7 @@ export default function LoginPage() {
       console.error("Error during login:", errorCode, errorMessage);
     }
   };
-  if (user && !isLoading) {
-    router.push("/dashboard");
-  }
+  
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
