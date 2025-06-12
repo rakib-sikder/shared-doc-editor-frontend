@@ -1,95 +1,107 @@
 import { useRouter } from "next/router";
-import { useState, useEffect, use } from "react";
-import dynamic from "next/dynamic";
-import "react-quill/dist/quill.snow.css";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import axios from "axios";
 import { io } from "socket.io-client";
 
-const QuillNoSSR = dynamic(() => import("react-quill"), {
-  ssr: false,
-  loading: () => <p>Loading editor...</p>,
-});
-
-const onlineUsers = [
-  { id: "1", name: "Alex", avatar: "https://i.pravatar.cc/40?u=1" },
-  { id: "2", name: "Maria", avatar: "https://i.pravatar.cc/40?u=2" },
-];
+import "quill/dist/quill.snow.css";
 
 export default function DocumentEditorPage() {
   const router = useRouter();
   const { id: docId } = router.query;
+
   const [docTitle, setDocTitle] = useState("Loading...");
-  const [content, setContent] = useState("");
+  const [docContent, setDocContent] = useState("");
+  const [socket, setSocket] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const quillRef = useRef(null);
+  const editorContainerRef = useRef(null);
+
   const [isShareModalOpen, setShareModalOpen] = useState(false);
-  const socket = io("http://localhost:5000");
-  const [selectedRole, setSelectedRole] = useState("viewer");
-  const [email, setEmail] = useState(""); 
+  const [shareEmail, setShareEmail] = useState("");
+  const [shareRole, setShareRole] = useState("viewer");
 
-  const handleEmailChange = (e) => {
-    setEmail(e.target.value); 
-  };
-  const handleSelectChange = (e) => {
-    setSelectedRole(e.target.value); 
-  };
+  useEffect(() => {
+    if (docId == null) return;
 
-  const handleShare = async (e) => {
-    e.preventDefault();
-    try {
+    const socketInstance = io("http://localhost:5000");
+    setSocket(socketInstance);
+
+    const setupEditorAndListeners = async () => {
+      if (editorContainerRef.current == null || quillRef.current != null)
+        return;
+
+      // Dynamically import Quill ONLY on the client-side
+      const Quill = (await import("quill")).default;
+
+      const editor = new Quill(editorContainerRef.current, {
+        theme: "snow",
+        modules: { toolbar: true },
+      });
+      quillRef.current = editor;
+
+      editor.disable();
+      editor.setText("Loading content...");
+
       const token = localStorage.getItem("token");
+
       if (!token) {
-        console.error("No authentication token found. Please log in.");
         router.push("/");
         return;
       }
-      const response = await axios.post(
-        `http://localhost:5000/api/documents/${docId}/share`,
-        {
-          email: email,
-          role: selectedRole,
-        },
-        {
-          headers: { Authorization: `token ${token}` },
+
+      try {
+        const res = await axios.get(
+          `http://localhost:5000/api/documents/${docId}`,
+          {
+            headers: { Authorization: `token ${token}` },
+          }
+        );
+
+        setDocTitle(res.data.title);
+        setDocContent(res.data.content);
+        editor.setText(res.data.content);
+        editor.enable();
+        setLoading(false);
+      } catch (err) {
+        setError(err.response?.data?.msg || "Could not fetch document.");
+        setLoading(false);
+        return;
+      }
+
+      socketInstance.emit("join-document", docId);
+
+      const receiveChangeHandler = (delta) => {
+        if (quillRef.current) {
+          quillRef.current.updateContents(delta);
         }
-      );
-      console.log("Document shared successfully:", response.data);
-      setShareModalOpen(false);
-    } catch (error) {
-      console.error("Error sharing document:", error);
-    }
-  
-  }
+      };
+      socketInstance.on("receive-text-change", receiveChangeHandler);
 
-  useEffect(() => {
-    if (!docId) {
-      console.error("Document ID is not available");
-      return;
-    }
+      const textChangeHandler = (delta, oldDelta, source) => {
+        console.log("Text change detected:", delta, source);
+        if (source === "user") {
+          socketInstance.emit("text-change", delta, docId);
+        }
+      };
+      editor.on("text-change", textChangeHandler);
+    };
 
-    // Initialize socket connection
-    socket.on("connect", () => {
-      console.log("Connected to socket server");
-    });
-
-    socket.on("disconnect", () => {
-      console.log("Disconnected from socket server");
-    });
-
-    // Listen for real-time updates
-    socket.on(`document-${docId}`, (data) => {
-      console.log("Real-time update received:", data);
-      setContent(data.content);
-      setDocTitle(data.title);
-    });
+    setupEditorAndListeners();
 
     return () => {
-      socket.off(`document-${docId}`);
-      socket.disconnect();
+      socketInstance.disconnect();
     };
-  }, [docId, socket]);
+  }, [docId, router]);
+
+  // Save Document Logic
 
   useEffect(() => {
-    const fetchDocument = async () => {
+    if (!quillRef.current || loading || error) return;
+
+    const saveContent = async () => {
       const token = localStorage.getItem("token");
       if (!token) {
         console.error("No authentication token found. Please log in.");
@@ -98,65 +110,58 @@ export default function DocumentEditorPage() {
       }
 
       try {
-        const response = await fetch(
+        const content = quillRef.current.getText();
+
+        setDocContent(content);
+
+        const res = await axios.put(
           `http://localhost:5000/api/documents/${docId}`,
-          {
-            headers: { Authorization: `token ${token}` },
-          }
+          { title: docTitle, content: content },
+          { headers: { Authorization: `token ${token}` } } 
         );
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch document");
-        }
-
-        const data = await response.json();
-        console.log("Fetched document:", data);
-        setDocTitle(data.title);
-        setContent(data.content);
-      } catch (error) {
-        console.error("Error fetching document:", error);
-        setDocTitle("Error loading document");
+      } catch (err) {
+        console.error(
+          "Error saving document:",
+          err.response?.data?.msg || "Failed to save document."
+        );
       }
     };
 
-    fetchDocument();
-  }, [docId, router]);
+    const saveInterval = setInterval(saveContent, 2000); 
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
+    return () => clearInterval(saveInterval);
+  }, [docId, quillRef, docTitle, docContent]);
+
+  // Share Document Logic
+  const handleShare = async (e) => {
+    e.preventDefault();
+    try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        console.error("No authentication token found. Please log in.");
-        router.push("/");
-        return;
-      }
-      axios.put(
-        `http://localhost:5000/api/documents/${docId}`,
-        {
-          title: docTitle,
-          content: content,
-        },
-        {
-          headers: { Authorization: `token ${token}` },
-        }
+      const res = await axios.post(
+        `http://localhost:5000/api/documents/${docId}/share`,
+        { email: shareEmail, role: shareRole },
+        { headers: { Authorization: `token ${token}` } } // Use the correct header name
       );
-    }, 2000);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [content, docId, docTitle, router]);
+      alert(res.data.msg || "Document shared successfully!");
+      setShareModalOpen(false);
+      setShareEmail("");
+    } catch (err) {
+      alert(err.response?.data?.msg || "Failed to share document.");
+    }
+  };
+  // if (loading) {
+  //   return <div className="text-center">Loading...</div>;
+  // }
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Editor Header */}
       <header className="flex items-center justify-between p-4 bg-white shadow-md">
         <div className="flex items-center">
           <Link
             href="/dashboard"
             className="mr-4 text-indigo-600 hover:underline"
           >
-            ← Back to Dashboard\
+            ← Dashboard
           </Link>
           <input
             type="text"
@@ -165,70 +170,60 @@ export default function DocumentEditorPage() {
             className="text-2xl font-bold text-gray-800 bg-transparent focus:outline-none focus:bg-gray-200 rounded-md px-2"
           />
         </div>
-        <div className="flex items-center">
-          {/* User Presence */}
-          <div className="flex -space-x-2 mr-4">
-            {onlineUsers.map((user) => (
-              <img
-                key={user.id}
-                className="inline-block w-10 h-10 rounded-full ring-2 ring-white"
-                src={user.avatar}
-                alt={user.name}
-                title={user.name}
-              />
-            ))}
-          </div>
+        <div>
           <button
             onClick={() => setShareModalOpen(true)}
             className="px-4 py-2 mr-2 font-semibold text-white bg-green-500 rounded-md hover:bg-green-600"
           >
             Share
           </button>
-          <img
-            src="https://i.pravatar.cc/40"
-            alt="My Avatar"
-            className="w-10 h-10 rounded-full"
-          />
         </div>
       </header>
 
-      {/* The Editor */}
       <main className="max-w-4xl p-8 mx-auto">
         <div className="bg-white shadow-lg">
-          <QuillNoSSR
-            theme="snow"
-            value={content}
-            onChange={setContent}
-            className="min-h-[70vh]"
-          />
+          <div ref={editorContainerRef} className="min-h-[70vh]"></div>
         </div>
       </main>
 
-      {/* Share Modal */}
+      {/* Share Modal Logic */}
       {isShareModalOpen && (
         <div className="fixed inset-0 z-10 flex items-center justify-center bg-black bg-opacity-50">
-          <form className="w-full max-w-lg p-6 bg-white rounded-lg">
+          <form
+            onSubmit={handleShare}
+            className="w-full max-w-lg p-6 bg-white rounded-lg"
+          >
             <h3 className="mb-4 text-xl font-bold">Share {docTitle}</h3>
             <input
               type="email"
               placeholder="Enter email to share with..."
+              required
+              value={shareEmail}
+              onChange={(e) => setShareEmail(e.target.value)}
               className="w-full px-3 py-2 border rounded-md"
-              onChange={handleEmailChange}
             />
             <div className="my-4">
-              <select value={selectedRole} onChange={handleSelectChange} className="w-full px-3 py-2 border rounded-md">
+              <select
+                value={shareRole}
+                onChange={(e) => setShareRole(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md"
+              >
                 <option value="viewer">Viewer</option>
                 <option value="editor">Editor</option>
               </select>
             </div>
             <div className="flex justify-end space-x-2">
               <button
+                type="button"
                 onClick={() => setShareModalOpen(false)}
                 className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md"
               >
                 Cancel
               </button>
-              <button onClick={handleShare} className="px-4 py-2 text-white bg-indigo-600 rounded-md">
+              <button
+                type="submit"
+                className="px-4 py-2 text-white bg-indigo-600 rounded-md"
+              >
                 Share
               </button>
             </div>

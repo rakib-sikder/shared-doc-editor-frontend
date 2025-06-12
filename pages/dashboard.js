@@ -47,17 +47,21 @@ export default function Dashboard() {
     }
     const fetchSharedDocuments = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/shared-documents", {
+        const res = await axios.get("http://localhost:5000/api/shared-documents", {
           headers: { Authorization: `token ${token}` },
         });
-        setSharedDocuments(response?.data);
+        const allDocuments = res.data.filter(
+          (doc) => doc.sharedWith
+        );
+        console.log("Shared Documents:", allDocuments);
+        setSharedDocuments(allDocuments);
         
       } catch (error) {
         console.error("Error fetching shared documents:", error);
       }
     };
     fetchSharedDocuments();
-  },[])
+  }, [])
     
 
   const handleLogout = () => {
